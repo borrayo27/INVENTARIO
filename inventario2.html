@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario de Accesorios</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 50%;
+            margin: 0 auto;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        button {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Inventario de Accesorios</h1>
+
+        <!-- Formulario para agregar accesorios -->
+        <div>
+            <label>Nombre:</label>
+            <input type="text" id="nombre" placeholder="Nombre del accesorio"><br>
+            <label>Descripción:</label>
+            <input type="text" id="descripcion" placeholder="Descripción"><br>
+            <label>Precio:</label>
+            <input type="number" id="precio" placeholder="Precio"><br>
+            <label>Cantidad:</label>
+            <input type="number" id="cantidad" placeholder="Cantidad"><br>
+            <button onclick="agregarAccesorio()">Agregar Accesorio</button>
+        </div>
+
+        <!-- Botón para mostrar todos los accesorios -->
+        <button onclick="mostrarAccesorios()">Mostrar Todos los Accesorios</button>
+        <button onclick="generarExcel()">Exportar a Excel</button>
+
+        <!-- Tabla para mostrar la información de todos los accesorios -->
+        <table id="tablaAccesorios">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Precio</th>
+                    <th>Cantidad</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Los accesorios agregados se mostrarán aquí -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Cargar la librería SheetJS para generar archivos Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        // Cargar los datos del Local Storage al iniciar la página
+        window.onload = function() {
+            if (localStorage.getItem('accesorios')) {
+                accesorios = JSON.parse(localStorage.getItem('accesorios'));
+                mostrarAccesorios();
+            }
+        };
+
+        // Lista para almacenar los accesorios
+        let accesorios = [];
+
+        // Función para agregar un accesorio
+        function agregarAccesorio() {
+            let nombre = document.getElementById('nombre').value;
+            let descripcion = document.getElementById('descripcion').value;
+            let precio = parseFloat(document.getElementById('precio').value);
+            let cantidad = parseInt(document.getElementById('cantidad').value);
+
+            if (nombre === '' || descripcion === '' || isNaN(precio) || isNaN(cantidad)) {
+                alert('Por favor, complete todos los campos.');
+                return;
+            }
+
+            // Crear objeto accesorio
+            let accesorio = {
+                nombre: nombre,
+                descripcion: descripcion,
+                precio: precio,
+                cantidad: cantidad
+            };
+
+            // Añadir accesorio a la lista
+            accesorios.push(accesorio);
+
+            // Guardar en Local Storage
+            localStorage.setItem('accesorios', JSON.stringify(accesorios));
+
+            // Limpiar los campos del formulario
+            document.getElementById('nombre').value = '';
+            document.getElementById('descripcion').value = '';
+            document.getElementById('precio').value = '';
+            document.getElementById('cantidad').value = '';
+
+            mostrarAccesorios();
+            alert('Accesorio agregado con éxito.');
+        }
+
+        // Función para mostrar todos los accesorios en una tabla
+        function mostrarAccesorios() {
+            let tabla = document.getElementById('tablaAccesorios').getElementsByTagName('tbody')[0];
+            tabla.innerHTML = '';  // Limpiar la tabla antes de mostrar
+
+            if (accesorios.length === 0) {
+                alert('No hay accesorios agregados.');
+                return;
+            }
+
+            // Recorrer la lista de accesorios y mostrarlos en la tabla
+            accesorios.forEach((accesorio, index) => {
+                let fila = tabla.insertRow();
+                
+                let celdaNombre = fila.insertCell(0);
+                let celdaDescripcion = fila.insertCell(1);
+                let celdaPrecio = fila.insertCell(2);
+                let celdaCantidad = fila.insertCell(3);
+                let celdaAcciones = fila.insertCell(4);
+
+                celdaNombre.innerHTML = accesorio.nombre;
+                celdaDescripcion.innerHTML = accesorio.descripcion;
+                celdaPrecio.innerHTML = accesorio.precio;
+                celdaCantidad.innerHTML = accesorio.cantidad;
+
+                // Botones de Editar y Eliminar
+                celdaAcciones.innerHTML = `
+                    <button onclick="editarAccesorio(${index})">Editar</button>
+                    <button onclick="eliminarAccesorio(${index})">Eliminar</button>
+                `;
+            });
+        }
+
+        // Función para eliminar un accesorio
+        function eliminarAccesorio(index) {
+            accesorios.splice(index, 1);
+
+            // Actualizar Local Storage
+            localStorage.setItem('accesorios', JSON.stringify(accesorios));
+
+            mostrarAccesorios();  // Actualizar la tabla
+        }
+
+        // Función para editar un accesorio
+        function editarAccesorio(index) {
+            let accesorio = accesorios[index];
+
+            // Colocar los valores del accesorio en el formulario para editarlos
+            document.getElementById('nombre').value = accesorio.nombre;
+            document.getElementById('descripcion').value = accesorio.descripcion;
+            document.getElementById('precio').value = accesorio.precio;
+            document.getElementById('cantidad').value = accesorio.cantidad;
+
+            // Eliminar el accesorio para que se pueda reemplazar con los datos actualizados
+            eliminarAccesorio(index);
+        }
+
+        // Función para generar un archivo Excel con la tabla de accesorios
+        function generarExcel() {
+            // Crear una nueva hoja de cálculo
+            let wb = XLSX.utils.book_new();
+
+            // Crear datos de la tabla en un formato adecuado para Excel
+            let data = [['Nombre', 'Descripción', 'Precio', 'Cantidad']];
+
+            accesorios.forEach(accesorio => {
+                data.push([accesorio.nombre, accesorio.descripcion, accesorio.precio, accesorio.cantidad]);
+            });
+
+            // Crear una nueva hoja con los datos
+            let ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, "Inventario de Accesorios");
+
+            // Exportar el archivo
+            XLSX.writeFile(wb, "inventario_accesorios.xlsx");
+        }
+    </script>
+</body>
+</html>
